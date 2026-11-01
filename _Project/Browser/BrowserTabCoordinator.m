@@ -21,7 +21,6 @@ static CGFloat const kThumbnailStagingOffset = 4096.0;
 @property (nonatomic, weak) UIView *rootView;
 @property (nonatomic, weak) BrowserTopBarView *topMenuView;
 @property (nonatomic, weak) UIImageView *cursorView;
-@property (nonatomic, weak) UIPanGestureRecognizer *manualScrollPanRecognizer;
 @property (nonatomic, weak) id webViewDelegate;
 @property (nonatomic) BOOL scrollViewAllowBounces;
 @property (nonatomic) NSMutableDictionary<NSString *, BrowserWebView *> *webViewsByTabIdentifier;
@@ -41,7 +40,6 @@ static CGFloat const kThumbnailStagingOffset = 4096.0;
                     rootView:(UIView *)rootView
                   topMenuView:(BrowserTopBarView *)topMenuView
                   cursorView:(UIImageView *)cursorView
-     manualScrollPanRecognizer:(UIPanGestureRecognizer *)manualScrollPanRecognizer
              webViewDelegate:(id)webViewDelegate
          scrollViewAllowBounces:(BOOL)scrollViewAllowBounces {
     self = [super init];
@@ -55,7 +53,6 @@ static CGFloat const kThumbnailStagingOffset = 4096.0;
         _rootView = rootView;
         _topMenuView = topMenuView;
         _cursorView = cursorView;
-        _manualScrollPanRecognizer = manualScrollPanRecognizer;
         _webViewDelegate = webViewDelegate;
         _scrollViewAllowBounces = scrollViewAllowBounces;
         _webViewsByTabIdentifier = [NSMutableDictionary dictionary];
@@ -316,7 +313,6 @@ static CGFloat const kThumbnailStagingOffset = 4096.0;
         ![self.host browserTabCoordinatorIsTabOverviewVisible];
     scrollView.scrollEnabled = shouldAllowWebInteraction;
     self.activeWebView.userInteractionEnabled = shouldAllowWebInteraction;
-    self.manualScrollPanRecognizer.enabled = shouldAllowWebInteraction;
 
     [self refreshActiveTabUI];
 }

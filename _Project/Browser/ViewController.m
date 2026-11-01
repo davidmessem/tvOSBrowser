@@ -83,7 +83,6 @@ static UIColor *kTextColor(void) {
                                                               rootView:self.view
                                                             topMenuView:self.topMenuView
                                                             cursorView:self.remoteInputController.cursorView
-                                               manualScrollPanRecognizer:self.remoteInputController.manualScrollPanRecognizer
                                                            webViewDelegate:self
                                                        scrollViewAllowBounces:self.scrollViewAllowBounces];
     self.tabOverviewController = [[BrowserTabOverviewController alloc] initWithHost:self
@@ -141,6 +140,7 @@ static UIColor *kTextColor(void) {
 
 - (void)handleApplicationWillResignActive:(NSNotification *)notification {
     (void)notification;
+    [self.remoteInputController resetHeldPresses];
     [self.tabCoordinator persistSession];
 }
 
@@ -805,7 +805,9 @@ static UIColor *kTextColor(void) {
 #pragma mark - Presses / Touches
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    [self.remoteInputController handlePressesBegan:presses withEvent:event];
+    if ([self.remoteInputController handlePressesBegan:presses withEvent:event]) {
+        return;
+    }
     [super pressesBegan:presses withEvent:event];
 }
 
@@ -816,32 +818,25 @@ static UIColor *kTextColor(void) {
     [super pressesEnded:presses withEvent:event];
 }
 
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if ([self.remoteInputController handlePressesCancelled:presses withEvent:event]) {
+        return;
+    }
+    [super pressesCancelled:presses withEvent:event];
+}
+
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    if ([self.remoteInputController handleTouchesBegan:touches withEvent:event]) {
+    if ([self.remoteInputController handleTouches]) {
         return;
     }
     [super touchesBegan:touches withEvent:event];
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    if ([self.remoteInputController handleTouchesMoved:touches withEvent:event]) {
+    if ([self.remoteInputController handleTouches]) {
         return;
     }
     [super touchesMoved:touches withEvent:event];
-}
-
-- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    (void)touches;
-    (void)event;
-    [self.remoteInputController handleTouchesEnded];
-    [super touchesEnded:touches withEvent:event];
-}
-
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    (void)touches;
-    (void)event;
-    [self.remoteInputController handleTouchesEnded];
-    [super touchesCancelled:touches withEvent:event];
 }
 
 @end
