@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		26A46FFD12A3C0F031B38870 /* BrowserSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B26BDB2313323D7019D8AD6 /* BrowserSmokeUITests.swift */; };
 		3A2A7C1621E7805D0083CB13 /* go-back-left-arrow.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A2A7C1121E7805D0083CB13 /* go-back-left-arrow.png */; };
 		3A2A7C1721E7805D0083CB13 /* house-outline.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A2A7C1221E7805D0083CB13 /* house-outline.png */; };
 		3A2A7C1821E7805D0083CB13 /* right-arrow-forward.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A2A7C1321E7805D0083CB13 /* right-arrow-forward.png */; };
@@ -17,6 +18,7 @@
 		3A2A7C2021E784760083CB13 /* resize-arrows.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A2A7C1F21E784760083CB13 /* resize-arrows.png */; };
 		3A2A7C2221E790000083CB13 /* multi-tab.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A2A7C2121E790000083CB13 /* multi-tab.png */; };
 		3A2A7C2421E790000083CB13 /* plus.png in Resources */ = {isa = PBXBuildFile; fileRef = 3A2A7C2321E790000083CB13 /* plus.png */; };
+		71D0E434D7AC0D4ABBEBC795 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8D245E4A025E8A4CCA41E2C /* Foundation.framework */; };
 		9675E1FC20855F6500A4A84A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9675E1FB20855F6500A4A84A /* Foundation.framework */; };
 		9675E1FF20857AEF00A4A84A /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9675E1FE20857AEF00A4A84A /* UIKit.framework */; };
 		A1B49A482D67F2B3001D58A1 /* BrowserTabViewModel.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B49A472D67F2B3001D58A1 /* BrowserTabViewModel.m */; };
@@ -48,7 +50,18 @@
 		B002B8721BAE420500C744AF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B002B8711BAE420500C744AF /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A60181D88E0E11A582D6BA21 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B002B85A1BAE420500C744AF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B002B8611BAE420500C744AF;
+			remoteInfo = Browser;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		0B26BDB2313323D7019D8AD6 /* BrowserSmokeUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrowserSmokeUITests.swift; sourceTree = "<group>"; };
 		3A2A7C1121E7805D0083CB13 /* go-back-left-arrow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "go-back-left-arrow.png"; sourceTree = "<group>"; };
 		3A2A7C1221E7805D0083CB13 /* house-outline.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "house-outline.png"; sourceTree = "<group>"; };
 		3A2A7C1321E7805D0083CB13 /* right-arrow-forward.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "right-arrow-forward.png"; sourceTree = "<group>"; };
@@ -59,6 +72,7 @@
 		3A2A7C1F21E784760083CB13 /* resize-arrows.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "resize-arrows.png"; sourceTree = "<group>"; };
 		3A2A7C2121E790000083CB13 /* multi-tab.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "multi-tab.png"; sourceTree = "<group>"; };
 		3A2A7C2321E790000083CB13 /* plus.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = plus.png; sourceTree = "<group>"; };
+		3AB7190A9337618DB9477F2B /* BrowserUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BrowserUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9675E1FB20855F6500A4A84A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		9675E1FE20857AEF00A4A84A /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		A1B49A462D67F2B3001D58A1 /* BrowserTabViewModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BrowserTabViewModel.h; sourceTree = "<group>"; };
@@ -109,7 +123,8 @@
 		B002B86F1BAE420500C744AF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		B002B8711BAE420500C744AF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B002B8731BAE420500C744AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B0F6B4611BAEBF9900E2F26B /* ../README.mdown */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = ../README.mdown; sourceTree = "<group>"; };
+		B0F6B4611BAEBF9900E2F26B /* README.mdown */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = ../README.mdown; sourceTree = "<group>"; };
+		D8D245E4A025E8A4CCA41E2C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,9 +137,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BCB4AD5062C3E47D00A85468 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71D0E434D7AC0D4ABBEBC795 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1251E0DA536AA31EEDDFFE0F /* BrowserUITests */ = {
+			isa = PBXGroup;
+			children = (
+				0B26BDB2313323D7019D8AD6 /* BrowserSmokeUITests.swift */,
+			);
+			name = BrowserUITests;
+			path = BrowserUITests;
+			sourceTree = "<group>";
+		};
 		3A2A7C0621E77E2C0083CB13 /* MenuIcons */ = {
 			isa = PBXGroup;
 			children = (
@@ -148,6 +180,7 @@
 			children = (
 				9675E1FE20857AEF00A4A84A /* UIKit.framework */,
 				9675E1FB20855F6500A4A84A /* Foundation.framework */,
+				F70820C87DBDAEF1816B7379 /* tvOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -270,10 +303,11 @@
 		B002B8591BAE420500C744AF = {
 			isa = PBXGroup;
 			children = (
-				B0F6B4611BAEBF9900E2F26B /* ../README.mdown */,
+				B0F6B4611BAEBF9900E2F26B /* README.mdown */,
 				B002B8641BAE420500C744AF /* Browser */,
 				B002B8631BAE420500C744AF /* Products */,
 				9675E1FA20855F6500A4A84A /* Frameworks */,
+				1251E0DA536AA31EEDDFFE0F /* BrowserUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -281,6 +315,7 @@
 			isa = PBXGroup;
 			children = (
 				B002B8621BAE420500C744AF /* Browser.app */,
+				3AB7190A9337618DB9477F2B /* BrowserUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -313,6 +348,14 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		F70820C87DBDAEF1816B7379 /* tvOS */ = {
+			isa = PBXGroup;
+			children = (
+				D8D245E4A025E8A4CCA41E2C /* Foundation.framework */,
+			);
+			name = tvOS;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -333,6 +376,24 @@
 			productName = Browser;
 			productReference = B002B8621BAE420500C744AF /* Browser.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BB32FE78F9BE8977A3DDFB29 /* BrowserUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2712296436364660CC319061 /* Build configuration list for PBXNativeTarget "BrowserUITests" */;
+			buildPhases = (
+				F7342F73CF0FE7DB97C328D1 /* Sources */,
+				BCB4AD5062C3E47D00A85468 /* Frameworks */,
+				29B8C8693479C367D4969594 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EC6AC7F029D773B0CEA3B6C8 /* PBXTargetDependency */,
+			);
+			name = BrowserUITests;
+			productName = BrowserUITests;
+			productReference = 3AB7190A9337618DB9477F2B /* BrowserUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -363,11 +424,19 @@
 			projectRoot = "";
 			targets = (
 				B002B8611BAE420500C744AF /* Browser */,
+				BB32FE78F9BE8977A3DDFB29 /* BrowserUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		29B8C8693479C367D4969594 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B002B8601BAE420500C744AF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -438,7 +507,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F7342F73CF0FE7DB97C328D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				26A46FFD12A3C0F031B38870 /* BrowserSmokeUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		EC6AC7F029D773B0CEA3B6C8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Browser;
+			target = B002B8611BAE420500C744AF /* Browser */;
+			targetProxy = A60181D88E0E11A582D6BA21 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		B002B86E1BAE420500C744AF /* Main.storyboard */ = {
@@ -452,6 +538,19 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		AADCF66888122ED8CCA634BE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jva.tvbrowser.uitests;
+				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Browser;
+				TVOS_DEPLOYMENT_TARGET = 15.6;
+			};
+			name = Debug;
+		};
 		B002B8741BAE420500C744AF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -612,9 +711,32 @@
 			};
 			name = Release;
 		};
+		D4A23BD8E1A3417AEE459A81 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jva.tvbrowser.uitests;
+				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Browser;
+				TVOS_DEPLOYMENT_TARGET = 15.6;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2712296436364660CC319061 /* Build configuration list for PBXNativeTarget "BrowserUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D4A23BD8E1A3417AEE459A81 /* Release */,
+				AADCF66888122ED8CCA634BE /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		B002B85D1BAE420500C744AF /* Build configuration list for PBXProject "Browser" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
