@@ -16,3 +16,30 @@ jobs:
             -sdk appletvsimulator \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO build
+
+  ui-tests:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick an Apple TV simulator
+        id: sim
+        run: |
+          xcrun simctl list devices available
+          UDID=$(xcrun simctl list devices available -j \
+            | jq -r '[.devices | to_entries[] | select(.key | contains("tvOS")) | .value[] | select(.name | startswith("Apple TV"))][0].udid')
+          echo "Using simulator $UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+      - name: Run UI smoke tests
+        run: |
+          xcodebuild test \
+            -project _Project/Browser.xcodeproj \
+            -scheme Browser \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ui-test-results
+          path: TestResults.xcresult
