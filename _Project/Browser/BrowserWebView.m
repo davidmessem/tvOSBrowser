@@ -1,4 +1,5 @@
 #import "BrowserWebView.h"
+#import "BrowserPreferencesStore.h"
 
 #import <dlfcn.h>
 #import <objc/message.h>
@@ -490,6 +491,10 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
 @property (nullable, nonatomic, copy) NSString *lastTitle;
 @property (nonatomic, copy) NSString *userAgent;
 @property (nonatomic) BOOL loading;
+@property (nonatomic, readwrite) CGFloat pageZoomFactor;
+@property (nullable, nonatomic, copy) NSString *pageZoomHost;
+@property (nonatomic) CGFloat appliedPageZoom;
+@property (nonatomic) CGFloat fitPageZoom;
 
 @end
 
@@ -520,6 +525,9 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
 
     self.backgroundColor = UIColor.blackColor;
     self.userAgent = userAgent;
+    _pageZoomFactor = 1.0;
+    _appliedPageZoom = 1.0;
+    _fitPageZoom = 1.0;
     self.scalesPageToFit = NO;
 
     Class configurationClass = NSClassFromString(kBrowserWebViewConfigurationClassName);
@@ -857,24 +865,84 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
     [self applyPageScalingIfNeeded];
 }
 
+static CGFloat const kBrowserZoomLevels[] = {0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0};
+static NSInteger const kBrowserZoomLevelCount = sizeof(kBrowserZoomLevels) / sizeof(kBrowserZoomLevels[0]);
+
+// Always re-read so other tabs on the same domain pick up changes.
+- (void)syncPageZoomWithCurrentHost {
+    self.pageZoomHost = [self currentURL].host;
+    self.pageZoomFactor = [[BrowserPreferencesStore new] pageZoomForHost:self.pageZoomHost];
+}
+
+- (void)reloadPageZoomFromPreferences {
+    [self applyPageScalingIfNeeded];
+}
+
+- (BOOL)isAtMinimumZoom {
+    return self.pageZoomFactor <= kBrowserZoomLevels[0] + 0.001;
+}
+
+- (BOOL)isAtMaximumZoom {
+    return self.pageZoomFactor >= kBrowserZoomLevels[kBrowserZoomLevelCount - 1] - 0.001;
+}
+
+- (CGFloat)setAndStorePageZoom:(CGFloat)zoom {
+    self.pageZoomHost = [self currentURL].host;
+    [[BrowserPreferencesStore new] setPageZoom:zoom forHost:self.pageZoomHost];
+    [self applyPageScalingIfNeeded];
+    return zoom;
+}
+
+- (CGFloat)zoomIn {
+    [self syncPageZoomWithCurrentHost];
+    for (NSInteger i = 0; i < kBrowserZoomLevelCount; i++) {
+        if (kBrowserZoomLevels[i] > self.pageZoomFactor + 0.001) {
+            return [self setAndStorePageZoom:kBrowserZoomLevels[i]];
+        }
+    }
+    return self.pageZoomFactor;
+}
+
+- (CGFloat)zoomOut {
+    [self syncPageZoomWithCurrentHost];
+    for (NSInteger i = kBrowserZoomLevelCount - 1; i >= 0; i--) {
+        if (kBrowserZoomLevels[i] < self.pageZoomFactor - 0.001) {
+            return [self setAndStorePageZoom:kBrowserZoomLevels[i]];
+        }
+    }
+    return self.pageZoomFactor;
+}
+
+- (CGFloat)resetZoom {
+    return [self setAndStorePageZoom:1.0];
+}
+
 - (void)applyPageScalingIfNeeded {
     if (self.runtimeWebView == nil) {
         return;
     }
+    [self syncPageZoomWithCurrentHost];
 
     UIScrollView *scrollView = [self scrollView];
     if (scrollView == nil || CGRectIsEmpty(scrollView.bounds)) {
         return;
     }
 
-    CGFloat zoomValue = 1.0;
+    // The fit amount is kept separate from the user's zoom. It only shrinks while the
+    // page is wider than the view, so responsive pages stay stable instead of compounding.
+    // It resets to 1.0 on each new navigation (see didCommitNavigation).
     if (self.scalesPageToFit) {
         CGFloat contentWidth = scrollView.contentSize.width;
         CGFloat boundsWidth = CGRectGetWidth(scrollView.bounds);
-        if (contentWidth > 1.0 && boundsWidth > 1.0) {
-            zoomValue = MIN(1.0, MAX(0.25, boundsWidth / contentWidth));
+        if (contentWidth > boundsWidth + 1.0 && boundsWidth > 1.0) {
+            CGFloat fittedTotal = self.appliedPageZoom * boundsWidth / contentWidth;
+            self.fitPageZoom = MIN(1.0, MAX(0.25, fittedTotal / self.pageZoomFactor));
         }
+    } else {
+        self.fitPageZoom = 1.0;
     }
+    CGFloat zoomValue = self.fitPageZoom * self.pageZoomFactor;
+    self.appliedPageZoom = zoomValue;
 
     SEL pageZoomSelector = NSSelectorFromString(@"setPageZoom:");
     if ([self.runtimeWebView respondsToSelector:pageZoomSelector]) {
@@ -883,8 +951,8 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
     }
 
     NSString *script = zoomValue == 1.0
-        ? @"document.documentElement.style.zoom=''; document.body.style.zoom='';"
-        : [NSString stringWithFormat:@"document.documentElement.style.zoom='%0.4f'; document.body.style.zoom='%0.4f';", zoomValue, zoomValue];
+        ? @"document.documentElement.style.zoom=''; if (document.body) { document.body.style.zoom=''; }"
+        : [NSString stringWithFormat:@"document.documentElement.style.zoom='%0.4f'; if (document.body) { document.body.style.zoom=''; }", zoomValue];
     [self stringByEvaluatingJavaScriptFromString:script];
 }
 
@@ -893,6 +961,15 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
     if ([self.delegate respondsToSelector:@selector(webViewDidStartLoad:)]) {
         [self.delegate webViewDidStartLoad:self];
     }
+}
+
+- (void)webView:(id)webView didCommitNavigation:(id)navigation {
+    // New document: re-measure the fit from scratch.
+    self.fitPageZoom = 1.0;
+    if (![self.runtimeWebView respondsToSelector:NSSelectorFromString(@"setPageZoom:")]) {
+        self.appliedPageZoom = 1.0; // CSS zoom does not survive a new document.
+    }
+    [self applyPageScalingIfNeeded];
 }
 
 - (void)webView:(id)webView didFinishNavigation:(id)navigation {

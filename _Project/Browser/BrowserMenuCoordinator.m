@@ -980,6 +980,14 @@ withAnimationCoordinator:(UIFocusAnimationCoordinator *)coordinator {
     }];
 }
 
+- (BrowserAdvancedMenuItem *)resetZoomMenuItem {
+    return [self advancedMenuItemWithTitle:@"Reset Zoom for This Site"
+                                     style:UIAlertActionStyleDefault
+                                   handler:^{
+        [self.host browserResetZoom];
+    }];
+}
+
 - (BrowserAdvancedMenuItem *)pageScalingMenuItem {
     BOOL scalesPageToFit = [[self.host browserWebView] scalesPageToFit];
     NSString *title = scalesPageToFit ? @"Stop Scaling Pages to Fit" : @"Scale Pages to Fit";
@@ -1064,6 +1072,7 @@ withAnimationCoordinator:(UIFocusAnimationCoordinator *)coordinator {
                                                items:@[
             [self topNavigationVisibilityMenuItem],
             [self pageScalingMenuItem],
+            [self resetZoomMenuItem],
             increaseFontSizeItem,
             decreaseFontSizeItem,
             resetFontSizeItem,

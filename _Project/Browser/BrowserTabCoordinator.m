@@ -220,6 +220,8 @@ static CGFloat const kThumbnailStagingOffset = 4096.0;
         return;
     }
 
+    [self.activeWebView reloadPageZoomFromPreferences];
+
     NSURLRequest *request = self.activeWebView.request;
     NSString *currentURL = tab.URLString.length > 0 ? tab.URLString : request.URL.absoluteString;
     self.topMenuView.URLLabel.text = currentURL.length > 0 ? currentURL : @"New Tab";

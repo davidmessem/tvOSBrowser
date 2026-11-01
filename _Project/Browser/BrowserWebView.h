@@ -23,6 +23,17 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly, getter=canGoForward) BOOL canGoForward;
 @property (nonatomic, readonly, getter=isLoading) BOOL loading;
 @property (nonatomic) BOOL scalesPageToFit;
+/// Current page zoom for this page's domain (1.0 = 100%).
+@property (nonatomic, readonly) CGFloat pageZoomFactor;
+
+/// Step zoom up/down (remembered per domain). Returns the new zoom factor.
+- (CGFloat)zoomIn;
+- (CGFloat)zoomOut;
+- (CGFloat)resetZoom;
+@property (nonatomic, readonly, getter=isAtMinimumZoom) BOOL atMinimumZoom;
+@property (nonatomic, readonly, getter=isAtMaximumZoom) BOOL atMaximumZoom;
+/// Re-reads the saved zoom for the current domain and applies it.
+- (void)reloadPageZoomFromPreferences;
 
 - (instancetype)initWithUserAgent:(NSString * _Nullable)userAgent
       allowsInlineMediaPlayback:(BOOL)allowsInlineMediaPlayback NS_DESIGNATED_INITIALIZER;

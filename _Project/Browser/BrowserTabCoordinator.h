@@ -27,6 +27,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) NSString *requestURL;
 @property (nonatomic, copy) NSString *previousURL;
 
+- (void)refreshActiveTabUI;
+
 - (instancetype)initWithHost:(id<BrowserTabCoordinatorHost>)host
                    viewModel:(BrowserViewModel *)viewModel
             preferencesStore:(BrowserPreferencesStore *)preferencesStore
