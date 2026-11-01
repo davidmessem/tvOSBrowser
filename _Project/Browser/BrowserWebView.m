@@ -1,4 +1,5 @@
 #import "BrowserWebView.h"
+#import "BrowserPreferencesStore.h"
 
 #import <dlfcn.h>
 #import <objc/message.h>
@@ -490,6 +491,9 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
 @property (nullable, nonatomic, copy) NSString *lastTitle;
 @property (nonatomic, copy) NSString *userAgent;
 @property (nonatomic) BOOL loading;
+@property (nonatomic, readwrite) CGFloat pageZoomFactor;
+@property (nullable, nonatomic, copy) NSString *pageZoomHost;
+@property (nonatomic) CGFloat appliedPageZoom;
 
 @end
 
@@ -520,6 +524,8 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
 
     self.backgroundColor = UIColor.blackColor;
     self.userAgent = userAgent;
+    _pageZoomFactor = 1.0;
+    _appliedPageZoom = 1.0;
     self.scalesPageToFit = NO;
 
     Class configurationClass = NSClassFromString(kBrowserWebViewConfigurationClassName);
@@ -857,10 +863,55 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
     [self applyPageScalingIfNeeded];
 }
 
+static CGFloat const kBrowserZoomLevels[] = {0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0};
+static NSInteger const kBrowserZoomLevelCount = sizeof(kBrowserZoomLevels) / sizeof(kBrowserZoomLevels[0]);
+
+- (void)syncPageZoomWithCurrentHost {
+    NSString *host = [self currentURL].host;
+    if (host == self.pageZoomHost || [host isEqualToString:self.pageZoomHost]) {
+        return;
+    }
+    self.pageZoomHost = host;
+    self.pageZoomFactor = [[BrowserPreferencesStore new] pageZoomForHost:host];
+}
+
+- (CGFloat)setAndStorePageZoom:(CGFloat)zoom {
+    [self syncPageZoomWithCurrentHost];
+    self.pageZoomFactor = zoom;
+    [[BrowserPreferencesStore new] setPageZoom:zoom forHost:self.pageZoomHost];
+    [self applyPageScalingIfNeeded];
+    return zoom;
+}
+
+- (CGFloat)zoomIn {
+    [self syncPageZoomWithCurrentHost];
+    for (NSInteger i = 0; i < kBrowserZoomLevelCount; i++) {
+        if (kBrowserZoomLevels[i] > self.pageZoomFactor + 0.001) {
+            return [self setAndStorePageZoom:kBrowserZoomLevels[i]];
+        }
+    }
+    return self.pageZoomFactor;
+}
+
+- (CGFloat)zoomOut {
+    [self syncPageZoomWithCurrentHost];
+    for (NSInteger i = kBrowserZoomLevelCount - 1; i >= 0; i--) {
+        if (kBrowserZoomLevels[i] < self.pageZoomFactor - 0.001) {
+            return [self setAndStorePageZoom:kBrowserZoomLevels[i]];
+        }
+    }
+    return self.pageZoomFactor;
+}
+
+- (CGFloat)resetZoom {
+    return [self setAndStorePageZoom:1.0];
+}
+
 - (void)applyPageScalingIfNeeded {
     if (self.runtimeWebView == nil) {
         return;
     }
+    [self syncPageZoomWithCurrentHost];
 
     UIScrollView *scrollView = [self scrollView];
     if (scrollView == nil || CGRectIsEmpty(scrollView.bounds)) {
@@ -872,9 +923,13 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
         CGFloat contentWidth = scrollView.contentSize.width;
         CGFloat boundsWidth = CGRectGetWidth(scrollView.bounds);
         if (contentWidth > 1.0 && boundsWidth > 1.0) {
-            zoomValue = MIN(1.0, MAX(0.25, boundsWidth / contentWidth));
+            // contentSize already includes the current page zoom, so undo it before fitting.
+            CGFloat currentZoom = MAX(0.01, self.appliedPageZoom);
+            zoomValue = MIN(1.0, MAX(0.25, boundsWidth / (contentWidth / currentZoom)));
         }
     }
+    zoomValue *= self.pageZoomFactor;
+    self.appliedPageZoom = zoomValue;
 
     SEL pageZoomSelector = NSSelectorFromString(@"setPageZoom:");
     if ([self.runtimeWebView respondsToSelector:pageZoomSelector]) {
@@ -883,8 +938,8 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
     }
 
     NSString *script = zoomValue == 1.0
-        ? @"document.documentElement.style.zoom=''; document.body.style.zoom='';"
-        : [NSString stringWithFormat:@"document.documentElement.style.zoom='%0.4f'; document.body.style.zoom='%0.4f';", zoomValue, zoomValue];
+        ? @"document.documentElement.style.zoom='';"
+        : [NSString stringWithFormat:@"document.documentElement.style.zoom='%0.4f';", zoomValue];
     [self stringByEvaluatingJavaScriptFromString:script];
 }
 
@@ -893,6 +948,10 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
     if ([self.delegate respondsToSelector:@selector(webViewDidStartLoad:)]) {
         [self.delegate webViewDidStartLoad:self];
     }
+}
+
+- (void)webView:(id)webView didCommitNavigation:(id)navigation {
+    [self applyPageScalingIfNeeded];
 }
 
 - (void)webView:(id)webView didFinishNavigation:(id)navigation {

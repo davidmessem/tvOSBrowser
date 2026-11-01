@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -17,6 +18,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) NSString *homePageURLString;
 
 - (void)ensureUserAgentConsistency;
+
+/// Page zoom remembered per domain ("www." is ignored). Returns 1.0 when unset.
+- (CGFloat)pageZoomForHost:(nullable NSString *)host;
+- (void)setPageZoom:(CGFloat)zoom forHost:(nullable NSString *)host;
 
 @end
 

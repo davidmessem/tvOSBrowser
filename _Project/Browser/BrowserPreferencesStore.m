@@ -8,6 +8,7 @@ static NSString * const kEnableFullscreenVideoPlaybackDefaultsKey = @"EnableFull
 static NSString * const kScalePagesToFitDefaultsKey = @"ScalePagesToFit";
 static NSString * const kDontShowHintsOnLaunchDefaultsKey = @"DontShowHintsOnLaunch";
 static NSString * const kHomepageDefaultsKey = @"homepage";
+static NSString * const kPageZoomByHostDefaultsKey = @"PageZoomByHost";
 
 static NSUInteger const kDefaultTextFontSize = 100;
 static NSUInteger const kMinimumTextFontSize = 50;
@@ -88,6 +89,38 @@ static NSUInteger const kMaximumTextFontSize = 200;
 - (void)setFullscreenVideoPlaybackEnabled:(BOOL)fullscreenVideoPlaybackEnabled {
     [[self defaults] setBool:fullscreenVideoPlaybackEnabled forKey:kEnableFullscreenVideoPlaybackDefaultsKey];
     [[self defaults] synchronize];
+}
+
+static NSString *BrowserNormalizedZoomHost(NSString *host) {
+    NSString *normalized = host.lowercaseString;
+    if ([normalized hasPrefix:@"www."]) {
+        normalized = [normalized substringFromIndex:4];
+    }
+    return normalized.length > 0 ? normalized : nil;
+}
+
+- (CGFloat)pageZoomForHost:(NSString *)host {
+    NSString *key = BrowserNormalizedZoomHost(host);
+    if (key == nil) {
+        return 1.0;
+    }
+    NSNumber *value = [[self defaults] dictionaryForKey:kPageZoomByHostDefaultsKey][key];
+    double zoom = [value isKindOfClass:[NSNumber class]] ? value.doubleValue : 1.0;
+    return zoom > 0.0 ? (CGFloat)zoom : 1.0;
+}
+
+- (void)setPageZoom:(CGFloat)zoom forHost:(NSString *)host {
+    NSString *key = BrowserNormalizedZoomHost(host);
+    if (key == nil) {
+        return;
+    }
+    NSMutableDictionary *zooms = [[[self defaults] dictionaryForKey:kPageZoomByHostDefaultsKey] mutableCopy] ?: [NSMutableDictionary dictionary];
+    if (fabs(zoom - 1.0) < 0.001) {
+        [zooms removeObjectForKey:key];
+    } else {
+        zooms[key] = @(zoom);
+    }
+    [[self defaults] setObject:zooms forKey:kPageZoomByHostDefaultsKey];
 }
 
 - (BOOL)scalePagesToFit {

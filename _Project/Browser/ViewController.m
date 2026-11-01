@@ -214,7 +214,26 @@ static UIColor *kTextColor(void) {
     [self updateFocusIfNeeded];
 }
 
+- (void)showZoomFeedback:(CGFloat)zoom {
+    UILabel *label = self.topMenuView.URLLabel;
+    NSString *message = [NSString stringWithFormat:@"Zoom %ld%%", (long)lround(zoom * 100.0)];
+    label.text = message;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if ([label.text isEqualToString:message]) {
+            NSString *currentURL = self.webview.request.URL.absoluteString;
+            label.text = currentURL.length > 0 ? currentURL : @"New Tab";
+        }
+    });
+}
+
 - (void)performTopBarAction:(BrowserTopBarAction)action {
+    // Zoom keeps the top bar focused so the button can be pressed repeatedly.
+    if (action == BrowserTopBarActionZoomIn || action == BrowserTopBarActionZoomOut) {
+        CGFloat zoom = action == BrowserTopBarActionZoomIn ? [self.webview zoomIn] : [self.webview zoomOut];
+        [self showZoomFeedback:zoom];
+        return;
+    }
+
     [self deactivateTopBarFocusMode];
 
     switch (action) {
@@ -258,6 +277,9 @@ static UIColor *kTextColor(void) {
             break;
         case BrowserTopBarActionMenu:
             [self showAdvancedMenu];
+            break;
+        case BrowserTopBarActionZoomOut:
+        case BrowserTopBarActionZoomIn:
             break;
     }
 }

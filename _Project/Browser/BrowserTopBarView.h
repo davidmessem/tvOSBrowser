@@ -10,7 +10,9 @@ typedef NS_ENUM(NSInteger, BrowserTopBarAction) {
     BrowserTopBarActionTabs,
     BrowserTopBarActionURL,
     BrowserTopBarActionFullscreen,
-    BrowserTopBarActionMenu
+    BrowserTopBarActionMenu,
+    BrowserTopBarActionZoomOut,
+    BrowserTopBarActionZoomIn
 };
 
 @class BrowserTopBarView;
@@ -31,6 +33,8 @@ typedef NS_ENUM(NSInteger, BrowserTopBarAction) {
 @property (nonatomic, readonly) UIImageView *tabsImageView;
 @property (nonatomic, readonly) UIImageView *fullscreenImageView;
 @property (nonatomic, readonly) UIImageView *menuImageView;
+@property (nonatomic, readonly) UIImageView *zoomOutImageView;
+@property (nonatomic, readonly) UIImageView *zoomInImageView;
 @property (nonatomic, readonly) UILabel *URLLabel;
 @property (nonatomic, readonly) UIActivityIndicatorView *loadingSpinner;
 @property (nonatomic, readonly, getter=isFocusModeActive) BOOL focusModeActive;

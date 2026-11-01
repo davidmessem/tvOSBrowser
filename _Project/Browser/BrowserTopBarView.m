@@ -46,6 +46,8 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
 @property (nonatomic) UIImageView *tabsImageView;
 @property (nonatomic) UIImageView *fullscreenImageView;
 @property (nonatomic) UIImageView *menuImageView;
+@property (nonatomic) UIImageView *zoomOutImageView;
+@property (nonatomic) UIImageView *zoomInImageView;
 @property (nonatomic) UILabel *URLLabel;
 @property (nonatomic) UIActivityIndicatorView *loadingSpinner;
 @property (nonatomic) UIView *focusGlowView;
@@ -59,6 +61,8 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
 @property (nonatomic) BrowserTopBarFocusButton *URLFocusButton;
 @property (nonatomic) BrowserTopBarFocusButton *fullscreenFocusButton;
 @property (nonatomic) BrowserTopBarFocusButton *menuFocusButton;
+@property (nonatomic) BrowserTopBarFocusButton *zoomOutFocusButton;
+@property (nonatomic) BrowserTopBarFocusButton *zoomInFocusButton;
 @property (nonatomic) BrowserTopBarFocusButton *lastFocusedButton;
 @property (nonatomic, getter=isFocusModeActive) BOOL focusModeActive;
 
@@ -134,6 +138,8 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
     _tabsImageView = [self newIconViewNamed:@"multi-tab"];
     _fullscreenImageView = [self newIconViewNamed:@"resize-arrows"];
     _menuImageView = [self newIconViewNamed:@"menu-2"];
+    _zoomOutImageView = [self newZoomIconViewWithSymbolName:@"minus.magnifyingglass" fallbackText:@"\u2212"];
+    _zoomInImageView = [self newZoomIconViewWithSymbolName:@"plus.magnifyingglass" fallbackText:@"+"];
 
     _URLLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     _URLLabel.text = @"tvOS Browser";
@@ -156,6 +162,8 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
         _forwardImageView,
         _homeImageView,
         _tabsImageView,
+        _zoomOutImageView,
+        _zoomInImageView,
         _fullscreenImageView,
         _menuImageView
     ];
@@ -169,6 +177,8 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
     _homeFocusButton = [self newFocusButtonForAction:BrowserTopBarActionHome accessibilityLabel:@"Home"];
     _tabsFocusButton = [self newFocusButtonForAction:BrowserTopBarActionTabs accessibilityLabel:@"Tabs"];
     _URLFocusButton = [self newFocusButtonForAction:BrowserTopBarActionURL accessibilityLabel:@"Enter URL or Search"];
+    _zoomOutFocusButton = [self newFocusButtonForAction:BrowserTopBarActionZoomOut accessibilityLabel:@"Zoom Out"];
+    _zoomInFocusButton = [self newFocusButtonForAction:BrowserTopBarActionZoomIn accessibilityLabel:@"Zoom In"];
     _fullscreenFocusButton = [self newFocusButtonForAction:BrowserTopBarActionFullscreen accessibilityLabel:@"Top Navigation Visibility"];
     _menuFocusButton = [self newFocusButtonForAction:BrowserTopBarActionMenu accessibilityLabel:@"Menu"];
     _focusButtons = @[
@@ -178,6 +188,8 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
         _homeFocusButton,
         _tabsFocusButton,
         _URLFocusButton,
+        _zoomOutFocusButton,
+        _zoomInFocusButton,
         _fullscreenFocusButton,
         _menuFocusButton
     ];
@@ -193,6 +205,30 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
     UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:imageName]];
     imageView.userInteractionEnabled = NO;
     imageView.contentMode = UIViewContentModeScaleAspectFit;
+    imageView.alpha = 0.95;
+    return imageView;
+}
+
+- (UIImageView *)newZoomIconViewWithSymbolName:(NSString *)symbolName fallbackText:(NSString *)fallbackText {
+    UIImage *image = nil;
+    if (@available(tvOS 13.0, *)) {
+        UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPointSize:34.0 weight:UIImageSymbolWeightMedium];
+        image = [[UIImage systemImageNamed:symbolName withConfiguration:configuration] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+    }
+    if (image == nil) {
+        UIGraphicsBeginImageContextWithOptions(CGSizeMake(kTopBarIconSize, kTopBarIconSize), NO, 0.0);
+        NSDictionary *attributes = @{NSFontAttributeName: [UIFont boldSystemFontOfSize:44.0],
+                                     NSForegroundColorAttributeName: UIColor.whiteColor};
+        CGSize textSize = [fallbackText sizeWithAttributes:attributes];
+        [fallbackText drawAtPoint:CGPointMake((kTopBarIconSize - textSize.width) / 2.0, (kTopBarIconSize - textSize.height) / 2.0)
+                   withAttributes:attributes];
+        image = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+    }
+    UIImageView *imageView = [[UIImageView alloc] initWithImage:image];
+    imageView.userInteractionEnabled = NO;
+    imageView.contentMode = UIViewContentModeCenter;
+    imageView.tintColor = UIColor.whiteColor;
     imageView.alpha = 0.95;
     return imageView;
 }
@@ -277,8 +313,14 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
     rightX = CGRectGetMinX(self.menuImageView.frame) - kTopBarIconSpacing - kTopBarIconSize;
     self.fullscreenImageView.frame = CGRectMake(rightX, iconY, kTopBarIconSize, kTopBarIconSize);
 
+    rightX = CGRectGetMinX(self.fullscreenImageView.frame) - kTopBarIconSpacing - kTopBarIconSize;
+    self.zoomInImageView.frame = CGRectMake(rightX, iconY, kTopBarIconSize, kTopBarIconSize);
+
+    rightX = CGRectGetMinX(self.zoomInImageView.frame) - kTopBarIconSpacing - kTopBarIconSize;
+    self.zoomOutImageView.frame = CGRectMake(rightX, iconY, kTopBarIconSize, kTopBarIconSize);
+
     CGFloat spinnerSide = 34.0;
-    rightX = CGRectGetMinX(self.fullscreenImageView.frame) - kTopBarSpinnerSpacing - spinnerSide;
+    rightX = CGRectGetMinX(self.zoomOutImageView.frame) - kTopBarSpinnerSpacing - spinnerSide;
     self.loadingSpinner.frame = CGRectMake(rightX,
                                            floor((CGRectGetHeight(chromeFrame) - spinnerSide) / 2.0),
                                            spinnerSide,
@@ -298,6 +340,8 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
     self.homeFocusButton.frame = [self focusFrameForIconView:self.homeImageView];
     self.tabsFocusButton.frame = [self focusFrameForIconView:self.tabsImageView];
     self.URLFocusButton.frame = [self focusFrameForLabel:self.URLLabel];
+    self.zoomOutFocusButton.frame = [self focusFrameForIconView:self.zoomOutImageView];
+    self.zoomInFocusButton.frame = [self focusFrameForIconView:self.zoomInImageView];
     self.fullscreenFocusButton.frame = [self focusFrameForIconView:self.fullscreenImageView];
     self.menuFocusButton.frame = [self focusFrameForMenuIconView:self.menuImageView];
 
