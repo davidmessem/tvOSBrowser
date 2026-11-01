@@ -29,7 +29,6 @@ NS_ASSUME_NONNULL_BEGIN
 @interface BrowserRemoteInputController : NSObject
 
 @property (nonatomic, readonly) UIImageView *cursorView;
-@property (nonatomic, readonly) UIPanGestureRecognizer *manualScrollPanRecognizer;
 @property (nonatomic, readonly) UITapGestureRecognizer *playPauseDoubleTapRecognizer;
 @property (nonatomic, readonly, getter=isCursorModeEnabled) BOOL cursorModeEnabled;
 
@@ -39,11 +38,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)init NS_UNAVAILABLE;
 
 - (void)handleGlobalSelectPressEndedNotification;
-- (void)handlePressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event;
+- (BOOL)handlePressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event;
 - (BOOL)handlePressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event;
-- (BOOL)handleTouchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
-- (BOOL)handleTouchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
-- (void)handleTouchesEnded;
+- (BOOL)handlePressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event;
+/// Forget any held arrows (e.g. when the app resigns active).
+- (void)resetHeldPresses;
+/// YES when touches should be swallowed (the touch surface does nothing).
+- (BOOL)handleTouches;
 - (void)setCursorModeEnabled:(BOOL)cursorModeEnabled;
 - (void)refreshInteractionState;
 
