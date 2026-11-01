@@ -328,7 +328,7 @@ static CGFloat const kTopBarUniformFocusHeight = 72.0;
 
     CGFloat labelOriginX = CGRectGetMaxX(self.tabsImageView.frame) + kTopBarLabelSpacing;
     CGFloat labelTrailingX = CGRectGetMinX(self.loadingSpinner.frame) - kTopBarLabelSpacing;
-    CGFloat labelWidth = MAX(200.0, labelTrailingX - labelOriginX);
+    CGFloat labelWidth = MAX(0.0, labelTrailingX - labelOriginX);
     self.URLLabel.frame = CGRectMake(labelOriginX,
                                      0.0,
                                      labelWidth,

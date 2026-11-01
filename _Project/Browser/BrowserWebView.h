@@ -30,6 +30,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (CGFloat)zoomIn;
 - (CGFloat)zoomOut;
 - (CGFloat)resetZoom;
+@property (nonatomic, readonly, getter=isAtMinimumZoom) BOOL atMinimumZoom;
+@property (nonatomic, readonly, getter=isAtMaximumZoom) BOOL atMaximumZoom;
+/// Re-reads the saved zoom for the current domain and applies it.
+- (void)reloadPageZoomFromPreferences;
 
 - (instancetype)initWithUserAgent:(NSString * _Nullable)userAgent
       allowsInlineMediaPlayback:(BOOL)allowsInlineMediaPlayback NS_DESIGNATED_INITIALIZER;

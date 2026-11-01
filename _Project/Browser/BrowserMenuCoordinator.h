@@ -6,6 +6,7 @@
 @protocol BrowserMenuCoordinatorHost <NSObject>
 
 @property (nonatomic, readonly) BrowserWebView *browserWebView;
+- (void)browserResetZoom;
 @property (nonatomic, copy) NSString *browserPreviousURL;
 @property (nonatomic) NSUInteger browserTextFontSize;
 @property (nonatomic) BOOL browserFullscreenVideoPlaybackEnabled;

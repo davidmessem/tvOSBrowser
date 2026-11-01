@@ -214,23 +214,46 @@ static UIColor *kTextColor(void) {
     [self updateFocusIfNeeded];
 }
 
-- (void)showZoomFeedback:(CGFloat)zoom {
+- (void)showZoomFeedback:(CGFloat)zoom suffix:(NSString *)suffix {
     UILabel *label = self.topMenuView.URLLabel;
-    NSString *message = [NSString stringWithFormat:@"Zoom %ld%%", (long)lround(zoom * 100.0)];
+    NSString *message = [NSString stringWithFormat:@"Zoom %ld%%%@", (long)lround(zoom * 100.0), suffix];
     label.text = message;
+    __weak typeof(self) weakSelf = self;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        // Only restore if nothing else (e.g. a tab switch) has replaced the message.
         if ([label.text isEqualToString:message]) {
-            NSString *currentURL = self.webview.request.URL.absoluteString;
-            label.text = currentURL.length > 0 ? currentURL : @"New Tab";
+            [weakSelf.tabCoordinator refreshActiveTabUI];
         }
     });
+}
+
+- (void)performZoomAction:(BrowserTopBarAction)action {
+    BrowserWebView *webView = self.webview;
+    if (webView == nil) {
+        return;
+    }
+    CGFloat zoom = action == BrowserTopBarActionZoomIn ? [webView zoomIn] : [webView zoomOut];
+    NSString *suffix = @"";
+    if (action == BrowserTopBarActionZoomIn && webView.atMaximumZoom) {
+        suffix = @" (max)";
+    } else if (action == BrowserTopBarActionZoomOut && webView.atMinimumZoom) {
+        suffix = @" (min)";
+    }
+    [self showZoomFeedback:zoom suffix:suffix];
+}
+
+- (void)browserResetZoom {
+    BrowserWebView *webView = self.webview;
+    if (webView == nil) {
+        return;
+    }
+    [self showZoomFeedback:[webView resetZoom] suffix:@""];
 }
 
 - (void)performTopBarAction:(BrowserTopBarAction)action {
     // Zoom keeps the top bar focused so the button can be pressed repeatedly.
     if (action == BrowserTopBarActionZoomIn || action == BrowserTopBarActionZoomOut) {
-        CGFloat zoom = action == BrowserTopBarActionZoomIn ? [self.webview zoomIn] : [self.webview zoomOut];
-        [self showZoomFeedback:zoom];
+        [self performZoomAction:action];
         return;
     }
 
