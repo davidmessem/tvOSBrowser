@@ -58,6 +58,12 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
 @property (nonatomic) CFTimeInterval lastDirectSelectPressTimestamp;
 @property (nonatomic) CFTimeInterval lastSelectPressTimestamp;
 @property (nonatomic) BOOL awaitingSecondSelectPress;
+@property (nonatomic) NSMutableSet<NSNumber *> *heldArrowPressTypes;
+@property (nonatomic) CADisplayLink *arrowDisplayLink;
+@property (nonatomic) CFTimeInterval arrowLastTimestamp;
+@property (nonatomic) CFTimeInterval arrowHoldStartTimestamp;
+@property (nonatomic) CFTimeInterval lastHoverCheckTimestamp;
+@property (nonatomic) BOOL arrowDidScroll;
 
 @end
 
@@ -71,6 +77,7 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
         _rootView = rootView;
         _lastTouchLocation = CGPointMake(-1, -1);
         _cursorModeEnabled = YES;
+        _heldArrowPressTypes = [NSMutableSet set];
 
         _cursorView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 64, 64)];
         _cursorView.center = CGPointMake(CGRectGetMidX([UIScreen mainScreen].bounds), CGRectGetMidY([UIScreen mainScreen].bounds));
@@ -95,6 +102,7 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
     _cursorModeEnabled = cursorModeEnabled;
     self.lastTouchLocation = CGPointMake(-1, -1);
     [self stopManualScrollInertia];
+    [self stopArrowMovement];
     [self refreshInteractionState];
     if (!wasCursorModeEnabled && cursorModeEnabled) {
         [self.host browserRemoteInputControllerPersistSession];
@@ -217,21 +225,117 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
 }
 
 - (void)handleSelectPressEnded {
-    CFTimeInterval now = CACurrentMediaTime();
-    if (self.awaitingSecondSelectPress && (now - self.lastSelectPressTimestamp) < 0.35) {
-        self.awaitingSecondSelectPress = NO;
-        self.lastSelectPressTimestamp = now;
-        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(handleDeferredSelectPressAction) object:nil];
-        if (![self.host browserRemoteInputControllerTabOverviewVisible]) {
-            [self setCursorModeEnabled:!self.cursorModeEnabled];
-        }
+    // Pointer mode is the only mode, so a single press clicks right away.
+    self.lastSelectPressTimestamp = CACurrentMediaTime();
+    self.awaitingSecondSelectPress = YES;
+    [self handleDeferredSelectPressAction];
+}
+
+#pragma mark - Arrow-driven pointer
+
+static BOOL BrowserIsArrowPress(UIPressType type) {
+    return type == UIPressTypeUpArrow || type == UIPressTypeDownArrow ||
+        type == UIPressTypeLeftArrow || type == UIPressTypeRightArrow;
+}
+
+- (BOOL)arrowPointerActive {
+    return self.cursorModeEnabled &&
+        [self.host browserRemoteInputControllerPresentedViewController] == nil &&
+        ![self.host browserRemoteInputControllerTabOverviewVisible] &&
+        ![self.host browserRemoteInputControllerTopBarFocusActive];
+}
+
+- (void)stopArrowMovement {
+    [self.heldArrowPressTypes removeAllObjects];
+    [self.arrowDisplayLink invalidate];
+    self.arrowDisplayLink = nil;
+    self.arrowLastTimestamp = 0;
+    if (self.arrowDidScroll) {
+        self.arrowDidScroll = NO;
+        [self.host browserRemoteInputControllerPersistSession];
+    }
+}
+
+- (void)startArrowMovementIfNeeded {
+    if (self.arrowDisplayLink != nil) {
+        return;
+    }
+    self.arrowHoldStartTimestamp = CACurrentMediaTime();
+    self.arrowLastTimestamp = 0;
+    self.arrowDisplayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(handleArrowDisplayLink:)];
+    [self.arrowDisplayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+    // Nudge immediately so a quick tap still moves the pointer a little.
+    [self moveCursorForHeldArrowsWithDeltaTime:1.0 / 30.0];
+}
+
+- (void)handleArrowDisplayLink:(CADisplayLink *)displayLink {
+    if (![self arrowPointerActive] || self.heldArrowPressTypes.count == 0) {
+        [self stopArrowMovement];
+        return;
+    }
+    if (self.arrowLastTimestamp <= 0) {
+        self.arrowLastTimestamp = displayLink.timestamp;
+        return;
+    }
+    CFTimeInterval deltaTime = MIN(displayLink.timestamp - self.arrowLastTimestamp, 0.05);
+    self.arrowLastTimestamp = displayLink.timestamp;
+    [self moveCursorForHeldArrowsWithDeltaTime:deltaTime];
+}
+
+- (void)moveCursorForHeldArrowsWithDeltaTime:(CFTimeInterval)deltaTime {
+    CGFloat dx = 0, dy = 0;
+    if ([self.heldArrowPressTypes containsObject:@(UIPressTypeLeftArrow)]) dx -= 1;
+    if ([self.heldArrowPressTypes containsObject:@(UIPressTypeRightArrow)]) dx += 1;
+    if ([self.heldArrowPressTypes containsObject:@(UIPressTypeUpArrow)]) dy -= 1;
+    if ([self.heldArrowPressTypes containsObject:@(UIPressTypeDownArrow)]) dy += 1;
+    if (dx == 0 && dy == 0) {
         return;
     }
 
-    self.awaitingSecondSelectPress = YES;
-    self.lastSelectPressTimestamp = now;
-    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(handleDeferredSelectPressAction) object:nil];
-    [self performSelector:@selector(handleDeferredSelectPressAction) withObject:nil afterDelay:0.3];
+    // Start slow for precision, accelerate the longer the arrow is held.
+    CFTimeInterval held = CACurrentMediaTime() - self.arrowHoldStartTimestamp;
+    CGFloat speed = 350.0 + MIN(held / 1.2, 1.0) * 1250.0; // points per second
+    CGFloat step = speed * deltaTime;
+
+    CGRect bounds = self.rootView.bounds;
+    CGFloat maxX = CGRectGetWidth(bounds) - 1.0;
+    CGFloat maxY = CGRectGetHeight(bounds) - 1.0;
+    CGRect rect = self.cursorView.frame;
+    CGFloat wantedX = rect.origin.x + dx * step;
+    CGFloat wantedY = rect.origin.y + dy * step;
+    rect.origin.x = MIN(MAX(wantedX, 0.0), maxX);
+    rect.origin.y = MIN(MAX(wantedY, 0.0), maxY);
+    self.cursorView.frame = rect;
+
+    // Whatever movement the screen edge blocked becomes page scrolling.
+    CGPoint overflow = CGPointMake(wantedX - rect.origin.x, wantedY - rect.origin.y);
+    if (!CGPointEqualToPoint(overflow, CGPointZero)) {
+        BOOL didScroll = [self applyManualScrollDelta:overflow];
+        self.arrowDidScroll = self.arrowDidScroll || didScroll;
+        UIScrollView *scrollView = [self.host browserRemoteInputControllerActiveScrollView];
+        BOOL atTopOfPage = scrollView == nil || scrollView.contentOffset.y <= 0.0;
+        if (overflow.y < 0 && !didScroll && atTopOfPage &&
+            [self.host browserRemoteInputControllerCanActivateTopBarFocus]) {
+            // Pushing up past the top of the page moves focus to the top bar.
+            [self stopArrowMovement];
+            [self.host browserRemoteInputControllerActivateTopBarFocus];
+            return;
+        }
+    }
+
+    CFTimeInterval now = CACurrentMediaTime();
+    if (now - self.lastHoverCheckTimestamp > 0.1) {
+        self.lastHoverCheckTimestamp = now;
+        [self updateCursorImage];
+    }
+}
+
+- (void)updateCursorImage {
+    self.cursorView.image = BrowserDefaultCursor();
+    NSString *containsLink = [self.host browserRemoteInputControllerHoverStateAtCursorPoint:self.cursorView.frame.origin];
+    if ([containsLink isEqualToString:@"true"]) {
+        self.cursorView.image = BrowserPointerCursor();
+    }
 }
 
 - (void)handlePlayPauseDoubleTap:(UITapGestureRecognizer *)sender {
@@ -291,6 +395,12 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
               [self.host browserRemoteInputControllerPresentedViewController] == nil ? @"(nil)" : NSStringFromClass([[self.host browserRemoteInputControllerPresentedViewController] class]));
     }
     (void)event;
+    for (UIPress *arrowPress in presses) {
+        if (BrowserIsArrowPress(arrowPress.type) && [self arrowPointerActive]) {
+            [self.heldArrowPressTypes addObject:@(arrowPress.type)];
+            [self startArrowMovementIfNeeded];
+        }
+    }
 }
 
 - (BOOL)handlePressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
@@ -306,6 +416,22 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
               BrowserPressPhaseString(press.phase),
               [self.host browserRemoteInputControllerPresentedViewController] == nil ? @"(nil)" : NSStringFromClass([[self.host browserRemoteInputControllerPresentedViewController] class]),
               [self.host browserRemoteInputControllerTabOverviewVisible] ? @"YES" : @"NO");
+    }
+
+    BOOL handledArrow = NO;
+    for (UIPress *arrowPress in presses) {
+        if (BrowserIsArrowPress(arrowPress.type) &&
+            [self.heldArrowPressTypes containsObject:@(arrowPress.type)]) {
+            [self.heldArrowPressTypes removeObject:@(arrowPress.type)];
+            handledArrow = YES;
+        }
+    }
+    if (handledArrow) {
+        if (self.heldArrowPressTypes.count == 0) {
+            [self stopArrowMovement];
+            [self updateCursorImage];
+        }
+        return YES;
     }
 
     if ([self.host browserRemoteInputControllerTopBarFocusActive]) {
@@ -350,12 +476,6 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
         return YES;
     }
 
-    if (press.type == UIPressTypeUpArrow &&
-        [self.host browserRemoteInputControllerCanActivateTopBarFocus]) {
-        [self.host browserRemoteInputControllerActivateTopBarFocus];
-        return YES;
-    }
-
     if ([self.host browserRemoteInputControllerTabOverviewVisible]) {
         if (press.type == UIPressTypeMenu || press.type == UIPressTypePlayPause) {
             [self.host browserRemoteInputControllerDismissTabOverview];
@@ -395,56 +515,8 @@ static NSString *BrowserPressPhaseString(UIPressPhase phase) {
 }
 
 - (BOOL)handleTouchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    (void)event;
-    if ([self.host browserRemoteInputControllerTopBarFocusActive]) {
-        return NO;
-    }
-    if ([self.host browserRemoteInputControllerTabOverviewVisible]) {
-        return NO;
-    }
-    if (!self.cursorModeEnabled) {
-        return NO;
-    }
-
-    for (UITouch *touch in touches) {
-        UIScrollView *activeScrollView = [self.host browserRemoteInputControllerActiveScrollView];
-        UIView *targetView = activeScrollView ?: self.rootView;
-        CGPoint location = [touch locationInView:targetView];
-
-        if (self.lastTouchLocation.x == -1 && self.lastTouchLocation.y == -1) {
-            self.lastTouchLocation = location;
-        } else {
-            CGFloat xDiff = location.x - self.lastTouchLocation.x;
-            CGFloat yDiff = location.y - self.lastTouchLocation.y;
-            CGRect rect = self.cursorView.frame;
-
-            if (rect.origin.x + xDiff >= 0 && rect.origin.x + xDiff <= 1920) {
-                rect.origin.x += xDiff;
-            }
-            if (rect.origin.y + yDiff >= 0 && rect.origin.y + yDiff <= 1080) {
-                rect.origin.y += yDiff;
-            }
-            self.cursorView.frame = rect;
-            self.lastTouchLocation = location;
-        }
-
-        self.cursorView.image = BrowserDefaultCursor();
-        if ([self.host browserRemoteInputControllerTabOverviewVisible]) {
-            if ([self.host browserRemoteInputControllerTabOverviewContainsPoint:self.cursorView.frame.origin]) {
-                self.cursorView.image = BrowserPointerCursor();
-            }
-            break;
-        }
-        if (self.cursorModeEnabled) {
-            NSString *containsLink = [self.host browserRemoteInputControllerHoverStateAtCursorPoint:self.cursorView.frame.origin];
-            if ([containsLink isEqualToString:@"true"]) {
-                self.cursorView.image = BrowserPointerCursor();
-            }
-        }
-        break;
-    }
-
-    return YES;
+    // The touch surface is intentionally ignored: the pointer is driven by the arrows only.
+    return [self handleTouchesBegan:touches withEvent:event];
 }
 
 - (void)handleTouchesEnded {
