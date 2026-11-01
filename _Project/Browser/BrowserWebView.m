@@ -935,8 +935,12 @@ static NSInteger const kBrowserZoomLevelCount = sizeof(kBrowserZoomLevels) / siz
         CGFloat contentWidth = scrollView.contentSize.width;
         CGFloat boundsWidth = CGRectGetWidth(scrollView.bounds);
         if (contentWidth > boundsWidth + 1.0 && boundsWidth > 1.0) {
-            CGFloat fittedTotal = self.appliedPageZoom * boundsWidth / contentWidth;
-            self.fitPageZoom = MIN(1.0, MAX(0.25, fittedTotal / self.pageZoomFactor));
+            // contentWidth / appliedPageZoom is the page's natural width, so the fit
+            // never depends on (or cancels out) the user's zoom.
+            CGFloat naturalWidth = contentWidth / self.appliedPageZoom;
+            CGFloat fit = MIN(1.0, MAX(0.25, boundsWidth / naturalWidth));
+            // Zooming in makes the page wider than the view on purpose; only shrink further.
+            self.fitPageZoom = MIN(self.fitPageZoom, fit);
         }
     } else {
         self.fitPageZoom = 1.0;
@@ -947,13 +951,17 @@ static NSInteger const kBrowserZoomLevelCount = sizeof(kBrowserZoomLevels) / siz
     SEL pageZoomSelector = NSSelectorFromString(@"setPageZoom:");
     if ([self.runtimeWebView respondsToSelector:pageZoomSelector]) {
         ((void (*)(id, SEL, double))objc_msgSend)(self.runtimeWebView, pageZoomSelector, zoomValue);
-        return;
+    } else {
+        NSString *script = zoomValue == 1.0
+            ? @"document.documentElement.style.zoom=''; if (document.body) { document.body.style.zoom=''; }"
+            : [NSString stringWithFormat:@"document.documentElement.style.zoom='%0.4f'; if (document.body) { document.body.style.zoom=''; }", zoomValue];
+        [self stringByEvaluatingJavaScriptFromString:script];
     }
 
-    NSString *script = zoomValue == 1.0
-        ? @"document.documentElement.style.zoom=''; if (document.body) { document.body.style.zoom=''; }"
-        : [NSString stringWithFormat:@"document.documentElement.style.zoom='%0.4f'; if (document.body) { document.body.style.zoom=''; }", zoomValue];
-    [self stringByEvaluatingJavaScriptFromString:script];
+    // Make the page re-lay out now (responsive layouts listen for resize) instead of on the next reload.
+    [self stringByEvaluatingJavaScriptFromString:@"void(document.documentElement && document.documentElement.offsetWidth); window.dispatchEvent(new Event('resize'));"];
+    [self.runtimeWebView setNeedsLayout];
+    [scrollView setNeedsLayout];
 }
 
 - (void)webView:(id)webView didStartProvisionalNavigation:(id)navigation {
