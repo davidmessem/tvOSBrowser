@@ -1,0 +1,17 @@
+name: Build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for tvOS Simulator
+        run: |
+          xcodebuild -project _Project/Browser.xcodeproj \
+            -target Browser \
+            -sdk appletvsimulator \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build
