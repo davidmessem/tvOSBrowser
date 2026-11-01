@@ -961,8 +961,13 @@ static NSInteger const kBrowserZoomLevelCount = sizeof(kBrowserZoomLevels) / siz
     CGFloat zoomValue = self.fitPageZoom * self.pageZoomFactor;
     self.appliedPageZoom = zoomValue;
 
+    // Preferred: view scale lays the page out at (view width / zoom), so zooming in
+    // gives the page a narrower window and responsive layouts and media queries adapt.
+    SEL viewScaleSelector = NSSelectorFromString(@"_setViewScale:");
     SEL pageZoomSelector = NSSelectorFromString(@"setPageZoom:");
-    if ([self.runtimeWebView respondsToSelector:pageZoomSelector]) {
+    if ([self.runtimeWebView respondsToSelector:viewScaleSelector]) {
+        ((void (*)(id, SEL, CGFloat))objc_msgSend)(self.runtimeWebView, viewScaleSelector, zoomValue);
+    } else if ([self.runtimeWebView respondsToSelector:pageZoomSelector]) {
         ((void (*)(id, SEL, double))objc_msgSend)(self.runtimeWebView, pageZoomSelector, zoomValue);
     } else {
         NSString *script = zoomValue == 1.0
@@ -987,7 +992,8 @@ static NSInteger const kBrowserZoomLevelCount = sizeof(kBrowserZoomLevels) / siz
 - (void)webView:(id)webView didCommitNavigation:(id)navigation {
     // New document: re-measure the fit from scratch.
     self.fitPageZoom = 1.0;
-    if (![self.runtimeWebView respondsToSelector:NSSelectorFromString(@"setPageZoom:")]) {
+    if (![self.runtimeWebView respondsToSelector:NSSelectorFromString(@"_setViewScale:")]
+        && ![self.runtimeWebView respondsToSelector:NSSelectorFromString(@"setPageZoom:")]) {
         self.appliedPageZoom = 1.0; // CSS zoom does not survive a new document.
     }
     [self applyPageScalingIfNeeded];
