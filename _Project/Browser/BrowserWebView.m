@@ -32,12 +32,18 @@ static void BrowserEnsureWebKitRuntimeLoaded(void) {
     });
 }
 
+// YES while the main thread is waiting on WebKit (see stringByEvaluatingJavaScriptFromString:).
+static BOOL sBrowserJavaScriptWaitActive = NO;
+
 static void BrowserPumpRunLoopUntil(BOOL *done) {
+    BOOL wasActive = sBrowserJavaScriptWaitActive;
+    sBrowserJavaScriptWaitActive = YES;
     while (!*done) {
         @autoreleasepool {
             [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
         }
     }
+    sBrowserJavaScriptWaitActive = wasActive;
 }
 
 static NSString *BrowserStringFromJavaScriptResult(id result) {
@@ -669,6 +675,13 @@ static void BrowserInstallYouTubeCaptureUserScript(id configuration) {
 
     SEL selector = NSSelectorFromString(@"evaluateJavaScript:completionHandler:");
     if (![self.runtimeWebView respondsToSelector:selector]) {
+        return nil;
+    }
+
+    // Waiting pumps the run loop, which can deliver a remote press. If that press's
+    // handler runs another script and waits again, UIKit gets a second event while the
+    // first is still being handled and kills the app. So a nested call returns at once.
+    if (sBrowserJavaScriptWaitActive) {
         return nil;
     }
 
